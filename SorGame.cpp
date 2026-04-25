@@ -444,11 +444,11 @@ void SorGame::drawBackground() {
 
     // Ground lines (in the lane)
     int16_t camOffsetX = camX % 40;
-    for(int i = 0; i < 160; i += 40) {
+    for(int i = -40; i < 160; i += 40) {
         Engine::drawScaledLine(arduboy, TO_FP(i - camOffsetX + camX), LANE_MIN_Y, TO_FP(i - camOffsetX + camX), LANE_MAX_Y, camera, shakeTimer);
     }
-    Engine::drawScaledLine(arduboy, camera.x - TO_FP(20), LANE_MIN_Y, camera.x + TO_FP(150), LANE_MIN_Y, camera, shakeTimer);
-    Engine::drawScaledLine(arduboy, camera.x - TO_FP(20), LANE_MAX_Y, camera.x + TO_FP(150), LANE_MAX_Y, camera, shakeTimer);
+    Engine::drawScaledLine(arduboy, camera.x - TO_FP(64), LANE_MIN_Y, camera.x + TO_FP(150), LANE_MIN_Y, camera, shakeTimer);
+    Engine::drawScaledLine(arduboy, camera.x - TO_FP(64), LANE_MAX_Y, camera.x + TO_FP(150), LANE_MAX_Y, camera, shakeTimer);
 }
 
 void SorGame::drawFight() {
@@ -547,7 +547,7 @@ void SorGame::drawFight() {
     else { 
         arduboy.print(F("GO->")); 
         if (goPromptTimer > 0 && (goPromptTimer / 10) % 2) {
-            arduboy.setCursor(45, 25);
+            arduboy.setCursor(45, 45);
             arduboy.print(F("GO... ->"));
         }
     }
@@ -599,6 +599,23 @@ void SorGame::drawCharSelect() {
     if (arduboy.justPressed(RIGHT_BUTTON) && selectedChar < 2) selectedChar++; // Only 3 playable characters
 
     if (arduboy.justPressed(A_BUTTON)) {
+        currentState = STATE_CHAR_INTRO;
+        delayTimer = 0; // Reset for next screen
+    }
+}
+
+void SorGame::drawCharIntro() {
+    CharacterData d; memcpy_P(&d, &roster[selectedChar], sizeof(CharacterData));
+    arduboy.setCursor(0, 0);
+    arduboy.print(d.name);
+    arduboy.print(F(" STORY:"));
+    
+    arduboy.setCursor(0, 15);
+    char buffer[100];
+    strcpy_P(buffer, (char*)pgm_read_ptr(&intros[selectedChar]));
+    arduboy.print(buffer);
+    
+    if (arduboy.justPressed(A_BUTTON)) {
         currentState = STATE_STAGE_INTRO;
     }
 }
@@ -616,15 +633,30 @@ void SorGame::drawStageIntro() {
 }
 
 void SorGame::drawStageClear() {
-    arduboy.setCursor(20, 25);
+    arduboy.setCursor(20, 0);
     arduboy.print(F("STAGE CLEAR!"));
+    
+    arduboy.setCursor(0, 15);
+    char buffer[100];
+    strcpy_P(buffer, (char*)pgm_read_ptr(&stage_clears[currentStage-1]));
+    arduboy.print(buffer);
+
+    arduboy.setCursor(20, 55);
+    if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A"));
+
     if (arduboy.justPressed(A_BUTTON)) currentState = STATE_STAGE_INTRO;
 }
 
 void SorGame::drawEnding() {
-    arduboy.setCursor(20, 20);
-    arduboy.print(F("YOU SAVED THE CITY!"));
-    arduboy.setCursor(20, 40);
+    arduboy.setCursor(0, 0);
+    arduboy.print(F("VICTORY!"));
+    
+    arduboy.setCursor(0, 15);
+    char buffer[100];
+    strcpy_P(buffer, (char*)pgm_read_ptr(&endings[selectedChar]));
+    arduboy.print(buffer);
+
+    arduboy.setCursor(20, 55);
     if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A"));
     if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
 }
@@ -638,6 +670,7 @@ void SorGame::loop() {
     switch(currentState) {
         case STATE_TITLE: drawMenu(); break;
         case STATE_CHAR_SELECT: drawCharSelect(); break;
+        case STATE_CHAR_INTRO: drawCharIntro(); break;
         case STATE_STAGE_INTRO: drawStageIntro(); break;
         case STATE_PLAYING: updateFight(); drawFight(); break;
         case STATE_STAGE_CLEAR: drawStageClear(); break;

@@ -19,7 +19,7 @@ const int16_t SIN_TABLE[64] PROGMEM = {
 };
 
 // --- Game States ---
-enum GameState { STATE_TITLE, STATE_CHAR_SELECT, STATE_STAGE_INTRO, STATE_PLAYING, STATE_STAGE_CLEAR, STATE_ENDING, STATE_RESULTS };
+enum GameState { STATE_TITLE, STATE_CHAR_SELECT, STATE_CHAR_INTRO, STATE_STAGE_INTRO, STATE_PLAYING, STATE_STAGE_CLEAR, STATE_ENDING, STATE_RESULTS };
 
 // --- Combat States ---
 enum CombatState { 
@@ -96,6 +96,14 @@ const char end_8[] PROGMEM = "JADE HAS ACHIEVED\nPERFECTION. HIS\nDOMINANCE IS A
 const char end_9[] PROGMEM = "ECHO'S SILENCE IS\nBROKEN BY APPLAUSE.\nHE IS THE UNKNOWN\nKING OF FIGHTERS.";
 
 const char* const endings[] PROGMEM = { end_0, end_1, end_2, end_3, end_4, end_5, end_6, end_7, end_8, end_9 };
+
+const char clear_0[] PROGMEM = "THE CITY STREETS ARE\nQUIETER NOW, BUT THE\nREAL THREAT LURKS\nDEEPER IN THE PARK.";
+const char clear_1[] PROGMEM = "NATURE PROVIDES NO\nREFUGE FOR EVIL. THE\nPATH TO THE FACTORY\nIS NOW OPEN.";
+const char clear_2[] PROGMEM = "THE INDUSTRIAL ZONE\nIS COLD, BUT YOUR\nWILL IS ON FIRE.\nNEXT: THE WASTELAND.";
+const char clear_3[] PROGMEM = "THE DESERT HEAT IS\nNOTHING COMPARED TO\nTHE HEAT OF BATTLE.\nTHE FINAL CITY AWAITS.";
+const char clear_4[] PROGMEM = "THE FINAL BOSS IS\nNEAR. FINISH THIS\nAND SAVE THE CITY\nONCE AND FOR ALL!";
+
+const char* const stage_clears[] PROGMEM = { clear_0, clear_1, clear_2, clear_3, clear_4 };
 
 const CharacterData roster[] PROGMEM = {
     {"ZENITH",  {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {0, 1, 0, 2, 0, 1}, AI_BALANCED, 60, 70},

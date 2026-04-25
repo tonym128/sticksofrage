@@ -28,6 +28,7 @@ protected:
     void drawFight();
     void drawMenu();
     void drawCharSelect();
+    void drawCharIntro();
     void drawStageIntro();
     void drawStageClear();
     void drawEnding();
