@@ -40,6 +40,10 @@ void SorGame::triggerHit(Skeleton &attacker, Skeleton &defender) {
     // Depth check! If they are on different Y planes, no hit
     if (abs(attacker.y - defender.y) > TO_FP(15)) return;
 
+    // Spawn protection: cannot hit enemies while they are off-screen
+    int16_t dsx = FROM_FP(defender.x - camera.x) + 64;
+    if (dsx < 5 || dsx > 123) return;
+
     CharacterData ad; memcpy_P(&ad, &roster[attacker.charIdx], sizeof(CharacterData));
     CharacterData dd; memcpy_P(&dd, &roster[defender.charIdx], sizeof(CharacterData));
 
@@ -47,25 +51,25 @@ void SorGame::triggerHit(Skeleton &attacker, Skeleton &defender) {
     if (attacker.state == CS_PUNCH_ACTIVE) dmg = 8;
     else if (attacker.state == CS_KICK_ACTIVE) dmg = 12;
 
-    // Scale by strength (ad.strength is 1-100, base is ~60)
+    // Combo Scaling
+    attacker.comboCount++;
+    if (attacker.comboCount > 3) attacker.comboCount = 1;
+    dmg = (dmg * (8 + attacker.comboCount)) / 10; // 90%, 100%, 110% damage
+
+    // Scale by strength
     dmg = (dmg * ad.strength) / 60;
-    
-    // Scale by size
     uint8_t attackerSize = Engine::getSize(attacker.charIdx);
     dmg = (int16_t)dmg * attackerSize / 62;
-
-    // Reduce by defender vitality (dd.vitality is 1-100, high vitality takes less % damage)
-    // Actually, vitality is better used as HP. 
-    // Let's use it as a defense factor too:
     dmg = (dmg * 70) / (30 + dd.vitality);
 
-    int16_t kb = TO_FP(3);
-    if (attacker.x < defender.x) { defender.vx = kb; attacker.vx = -kb/2; } 
-    else { defender.vx = -kb; attacker.vx = kb/2; }
+    // Knockback
+    int16_t kb = TO_FP(2) + (attacker.comboCount * TO_FP(1));
+    if (attacker.x < defender.x) { defender.vx = kb; attacker.vx = -kb/4; } 
+    else { defender.vx = -kb; attacker.vx = kb/4; }
     
     defender.health -= dmg; 
     defender.state = CS_HITSTUN; 
-    defender.stateTimer = 15;
+    defender.stateTimer = 15 + (attacker.comboCount * 5);
     
     if (defender.health < 0) defender.health = 0; 
 }
