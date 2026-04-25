@@ -25,6 +25,8 @@ void SorGame::resetStage() {
     bossDefeated = false;
     
     for(int i=0; i<MAX_ENEMIES; i++) enemyActive[i] = false;
+    for(int i=0; i<MAX_PICKUPS; i++) pickups[i].active = false;
+    pickupTimer = 0;
     camera.x = TO_FP(maxCameraX);
     camera.y = TO_FP(48);
     camera.zoom = 100;
@@ -148,8 +150,8 @@ void SorGame::updateEnemies() {
             // Final Boss Encounter
             for(int i=0; i<MAX_ENEMIES; i++) {
                 if (!enemyActive[i]) {
-                    Engine::initSkeleton(enemies[i], 9, camera.x + TO_FP(150), true);
-                    enemies[i].y = TO_FP(96);
+                    Engine::initSkeleton(enemies[i], 9, camera.x + TO_FP(80), true);
+                    enemies[i].y = TO_FP(64);
                     enemies[i].health = 100;
                     enemies[i].aiTimer = 60; 
                     enemyActive[i] = true;
@@ -166,13 +168,13 @@ void SorGame::updateEnemies() {
             for(uint8_t i=0; i<count; i++) {
                 if (!enemyActive[i]) {
                     uint8_t eIdx = random(3, 9);
-                    // Half from left, half from right
-                    int32_t spawnX = (i % 2 == 0) ? camera.x - TO_FP(30) : camera.x + TO_FP(150);
+                    // Half from left, half from right - off screen but close
+                    int32_t spawnX = (i % 2 == 0) ? camera.x - TO_FP(75) : camera.x + TO_FP(75);
                     Engine::initSkeleton(enemies[i], eIdx, spawnX, (spawnX > player.x));
-                    enemies[i].y = TO_FP(random(80, 112));
+                    enemies[i].y = TO_FP(random(48, 80));
                     enemies[i].health = 30;
-                    enemies[i].walkSpeed = TO_FP(1);
-                    enemies[i].aiTimer = 30 + (i * 20); // Staggered start
+                    enemies[i].walkSpeed = TO_FP(1.5); // Faster enemies
+                    enemies[i].aiTimer = 10 + (i * 10); // Faster reaction
                     enemyActive[i] = true;
                     enemiesSpawned++;
                 }
@@ -197,6 +199,19 @@ void SorGame::updateEnemies() {
             if (e.stateTimer == 0) {
                 enemyActive[i] = false;
                 if (enemiesRemainingInEncounter > 0) enemiesRemainingInEncounter--;
+                
+                // Drop pickup chance
+                if (random(0, 100) < 20) { // 20% chance
+                    for(int p=0; p<MAX_PICKUPS; p++) {
+                        if (!pickups[p].active) {
+                            pickups[p].x = e.x;
+                            pickups[p].y = e.y;
+                            pickups[p].active = true;
+                            break;
+                        }
+                    }
+                }
+
                 if (bossSpawned && e.charIdx == 9) bossDefeated = true;
                 else enemiesDefeated++;
             }
@@ -298,8 +313,24 @@ void SorGame::updateEnemies() {
 
 void SorGame::updateFight() {
     if (shakeTimer > 0) shakeTimer--;
+    if (pickupTimer > 0) pickupTimer--;
+
     updatePlayer();
     updateEnemies();
+
+    // Pickup collection
+    if (player.health > 0) {
+        for(int i=0; i<MAX_PICKUPS; i++) {
+            if (pickups[i].active) {
+                if (labs(player.x - pickups[i].x) < TO_FP(15) && labs(player.y - pickups[i].y) < TO_FP(10)) {
+                    player.health += 25;
+                    if (player.health > 100) player.health = 100;
+                    pickups[i].active = false;
+                    pickupTimer = 30; // 30 frames of ducking
+                }
+            }
+        }
+    }
     
     if (player.health == 0) {
         if (delayTimer == 0) delayTimer = 120;
@@ -319,36 +350,77 @@ void SorGame::updateFight() {
 void SorGame::drawBackground() {
     int16_t camX = FROM_FP(camera.x);
 
-    // Far background: Mountains (Parallax 1/4)
-    int16_t p4 = (camX / 4) % 128;
-    for (int i = -1; i < 2; i++) {
-        int16_t bx = (i * 128) - p4;
-        arduboy.drawLine(bx, 20, bx + 30, 5);
-        arduboy.drawLine(bx + 30, 5, bx + 60, 20);
-        arduboy.drawLine(bx + 50, 15, bx + 80, 0);
-        arduboy.drawLine(bx + 80, 0, bx + 120, 20);
+    if (currentStage == 0) { // CITY
+        int16_t p4 = (camX / 4) % 128;
+        for (int i = -1; i < 2; i++) {
+            int16_t bx = (i * 128) - p4;
+            arduboy.drawLine(bx, 20, bx + 30, 5); arduboy.drawLine(bx + 30, 5, bx + 60, 20);
+            arduboy.drawLine(bx + 50, 15, bx + 80, 0); arduboy.drawLine(bx + 80, 0, bx + 120, 20);
+        }
+        int16_t p2 = (camX / 2) % 64;
+        for (int i = -1; i < 3; i++) {
+            int16_t bx = (i * 64) - p2;
+            arduboy.drawRect(bx, 10, 20, 22); arduboy.drawRect(bx + 25, 15, 30, 17);
+        }
+        int16_t p1 = camX % 80;
+        for (int i = -1; i < 3; i++) {
+            int16_t lx = (i * 80) - p1;
+            arduboy.drawFastVLine(lx, 5, 27); arduboy.drawFastHLine(lx - 5, 5, 11);
+        }
+    } else if (currentStage == 1) { // PARK
+        int16_t p2 = (camX / 2) % 64;
+        for (int i = -1; i < 3; i++) {
+            int16_t bx = (i * 64) - p2;
+            arduboy.drawCircle(bx + 15, 15, 10); arduboy.drawFastVLine(bx + 15, 25, 7); // Tree
+            arduboy.drawCircle(bx + 45, 12, 8); arduboy.drawFastVLine(bx + 45, 20, 12); // Tree
+        }
+        int16_t p1 = camX % 100;
+        for (int i = -1; i < 3; i++) {
+            int16_t bx = (i * 100) - p1;
+            arduboy.drawRect(bx + 10, 25, 20, 5); // Bench
+            arduboy.drawFastVLine(bx + 12, 30, 2); arduboy.drawFastVLine(bx + 28, 30, 2);
+        }
+    } else if (currentStage == 2) { // OPEN SPACE
+        int16_t p4 = (camX / 4) % 128;
+        for (int i = -1; i < 2; i++) {
+            int16_t bx = (i * 128) - p4;
+            arduboy.drawCircle(bx + 40, 5, 3); // Bird/Cloud?
+        }
+        int16_t p2 = (camX / 2) % 80;
+        for (int i = -1; i < 3; i++) {
+            int16_t bx = (i * 80) - p2;
+            arduboy.drawRect(bx, 20, 40, 12); // Low fence
+            arduboy.drawFastVLine(bx + 10, 20, 12); arduboy.drawFastVLine(bx + 30, 20, 12);
+        }
+    } else if (currentStage == 3) { // DESERT
+        int16_t p4 = (camX / 4) % 128;
+        for (int i = -1; i < 2; i++) {
+            int16_t bx = (i * 128) - p4;
+            arduboy.drawLine(bx, 25, bx + 64, 15); arduboy.drawLine(bx + 64, 15, bx + 128, 25); // Dunes
+        }
+        int16_t p1 = camX % 90;
+        for (int i = -1; i < 3; i++) {
+            int16_t bx = (i * 90) - p1;
+            arduboy.drawFastVLine(bx + 20, 15, 15); arduboy.drawFastHLine(bx + 15, 20, 10); // Cactus
+            arduboy.drawCircle(bx + 60, 28, 4); // Rock
+        }
+    } else { // CITY NIGHT
+        int16_t p4 = (camX / 4) % 64;
+        for (int i = -1; i < 4; i++) {
+            int16_t bx = (i * 64) - p4;
+            arduboy.drawRect(bx + 5, 5, 15, 27); // Skyscrapers
+            arduboy.drawPixel(bx + 8, 8); arduboy.drawPixel(bx + 12, 15);
+        }
+        int16_t p1 = camX % 40;
+        for (int i = -1; i < 5; i++) {
+            int16_t lx = (i * 40) - p1;
+            arduboy.drawFastVLine(lx, 15, 17); // Light poles
+            arduboy.drawCircle(lx, 15, 2);
+        }
     }
 
-    // Mid background: Buildings (Parallax 1/2)
-    int16_t p2 = (camX / 2) % 64;
-    for (int i = -1; i < 3; i++) {
-        int16_t bx = (i * 64) - p2;
-        arduboy.drawRect(bx, 10, 20, 22);
-        arduboy.drawRect(bx + 2, 12, 6, 6);
-        arduboy.drawRect(bx + 12, 12, 6, 6);
-        arduboy.drawRect(bx + 25, 15, 30, 17);
-        arduboy.drawRect(bx + 28, 18, 10, 10);
-    }
-
-    // Near background: Lamp posts (Parallax 1/1)
-    int16_t p1 = camX % 80;
-    for (int i = -1; i < 3; i++) {
-        int16_t lx = (i * 80) - p1;
-        arduboy.drawFastVLine(lx, 5, 27);
-        arduboy.drawFastHLine(lx - 5, 5, 11);
-        arduboy.drawRect(lx - 5, 6, 3, 3);
-        arduboy.drawRect(lx + 3, 6, 3, 3);
-    }
+    // Ground line separating background and lane
+    arduboy.drawFastHLine(0, 32, 128);
 
     // Ground lines (in the lane)
     int16_t camOffsetX = camX % 40;
@@ -361,6 +433,17 @@ void SorGame::drawBackground() {
 
 void SorGame::drawFight() {
     drawBackground();
+
+    // Draw pickups
+    for(int i=0; i<MAX_PICKUPS; i++) {
+        if (pickups[i].active) {
+            int16_t sx = FROM_FP(pickups[i].x - camera.x) + 64;
+            int16_t sy = FROM_FP(pickups[i].y - camera.y) + 32;
+            arduboy.drawRect(sx-3, sy-3, 7, 7);
+            arduboy.drawFastHLine(sx-1, sy, 3);
+            arduboy.drawFastVLine(sx, sy-1, 3);
+        }
+    }
 
     // Collect all active skeletons
     Skeleton* skels[MAX_ENEMIES + 1];
@@ -386,9 +469,38 @@ void SorGame::drawFight() {
         Skeleton* s = skels[i];
         if (s->state == CS_HITSTUN && (s->stateTimer % 4) < 2) continue; // flicker
         
+        uint8_t pIdx = 0;
+        if (s == &player && pickupTimer > 0) {
+            pIdx = 8; // DUCK animation when picking up
+        } else {
+            switch(s->state) {
+                case CS_IDLE: pIdx = 0; break;
+                case CS_WALK: pIdx = 1 + (arduboy.frameCount / 8) % 4; break;
+                case CS_BLOCK: pIdx = 5; break;
+                case CS_PUNCH_STARTUP:
+                case CS_PUNCH_ACTIVE:
+                case CS_PUNCH_RECOVERY: pIdx = 6; break;
+                case CS_KICK_STARTUP:
+                case CS_KICK_ACTIVE:
+                case CS_KICK_RECOVERY: pIdx = 7; break;
+                case CS_HITSTUN: pIdx = 9; break;
+                default: pIdx = 0; break;
+            }
+        }
+
         Engine::drawScaledCircle(arduboy, s->x, s->y, 10, camera, shakeTimer);
-        Engine::updateSkeleton(*s, poses[s->state], arduboy.frameCount, s->state);
+        Engine::updateSkeleton(*s, poses[pIdx], arduboy.frameCount, pIdx);
         Engine::drawSkeleton(arduboy, *s, camera, shakeTimer);
+
+        // Enemy health bars
+        if (s != &player) {
+            int16_t hx = FROM_FP(s->x - camera.x) + 64 - 5;
+            int16_t hy = FROM_FP(s->y - camera.y) + 32 - 35;
+            arduboy.drawRect(hx, hy, 12, 3, WHITE);
+            int8_t bw = (s->health * 10) / (s->charIdx == 9 ? 100 : 30);
+            if (bw > 10) bw = 10;
+            arduboy.fillRect(hx + 1, hy + 1, bw, 1, WHITE);
+        }
     }
 
     // HUD

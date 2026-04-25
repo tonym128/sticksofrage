@@ -8,6 +8,7 @@
 #include "stick.h"
 
 #define MAX_ENEMIES 4
+#define MAX_PICKUPS 2
 #define LEVEL_END_X TO_FP(2500)
 #define LANE_MIN_Y TO_FP(48)
 #define LANE_MAX_Y TO_FP(80)
@@ -41,6 +42,9 @@ protected:
     Skeleton player;
     Skeleton enemies[MAX_ENEMIES];
     bool enemyActive[MAX_ENEMIES];
+    
+    struct Pickup { int32_t x, y; bool active; } pickups[MAX_PICKUPS];
+    uint8_t pickupTimer = 0;
     
     InputBuffer playerBuffer;
 

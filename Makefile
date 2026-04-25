@@ -1,11 +1,11 @@
 # StickFighter Makefile for arduino-cli
 
-SKETCH = stickfighter.ino
+SKETCH = sticksofrage.ino
 BOARD = arduboy:avr:arduboy
 # If the Arduboy board package is not installed, use Leonardo:
 # BOARD = arduino:avr:leonardo
 BUILD_DIR = build
-OUTPUT_HEX = $(BUILD_DIR)/stickfighter.ino.hex
+OUTPUT_HEX = $(BUILD_DIR)/sticksofrage.ino.hex
 
 .PHONY: all setup compile upload clean test sdl editor
 
@@ -18,7 +18,7 @@ editor:
 	g++ -O2 sdl/AnimationEditor.cpp Engine.cpp sdl/PlatformSDL.cpp sdl/main_editor.cpp -o stickfighter_editor `sdl2-config --cflags --libs`
 
 test:
-	g++ -O2 -I. Game.cpp Engine.cpp sdl/PlatformSDL.cpp tests/unit_tests.cpp -o tests/runner `sdl2-config --cflags --libs`
+	g++ -O2 -I. SorGame.cpp Engine.cpp sdl/PlatformSDL.cpp tests/unit_tests.cpp -o tests/runner `sdl2-config --cflags --libs`
 	./tests/runner
 
 setup:
