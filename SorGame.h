@@ -9,8 +9,8 @@
 
 #define MAX_ENEMIES 4
 #define MAX_PICKUPS 2
-#define LEVEL_END_X TO_FP(2500)
-#define LANE_MIN_Y TO_FP(48)
+#define LEVEL_END_X TO_FP(1250)
+#define LANE_MIN_Y TO_FP(50)
 #define LANE_MAX_Y TO_FP(80)
 
 class SorGame {
@@ -59,6 +59,7 @@ protected:
     uint8_t enemiesDefeated = 0;
     uint8_t totalEnemiesToSpawn = 0;
     uint8_t enemiesSpawned = 0;
+    uint8_t goPromptTimer = 0;
     bool bossSpawned = false;
     bool bossDefeated = false;
 

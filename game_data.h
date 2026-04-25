@@ -69,7 +69,7 @@ struct Pose { uint8_t angles[6]; };
 // --- AI Profiles ---
 enum AIProfile { AI_BALANCED, AI_RUSHDOWN, AI_ZONER, AI_TANK };
 
-struct CharacterData { char name[8]; uint8_t lengths[6]; int16_t walkSpeed; FaceData face; AIProfile profile; };
+struct CharacterData { char name[8]; uint8_t lengths[6]; int16_t walkSpeed; FaceData face; AIProfile profile; uint8_t strength; uint8_t vitality; };
 
 const char intro_0[] PROGMEM = "ZENITH HAS TRAINED\nFOR A LIFETIME. HIS\nWILL IS UNBREAKABLE.\nHE CLAIMS DESTINY.";
 const char intro_1[] PROGMEM = "CINDER RISES FROM\nTHE ASHES. A HEART\nOF FIRE DRIVES HIM\nTO BURN ALL FOES.";
@@ -98,16 +98,16 @@ const char end_9[] PROGMEM = "ECHO'S SILENCE IS\nBROKEN BY APPLAUSE.\nHE IS THE 
 const char* const endings[] PROGMEM = { end_0, end_1, end_2, end_3, end_4, end_5, end_6, end_7, end_8, end_9 };
 
 const CharacterData roster[] PROGMEM = {
-    {"ZENITH",  {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {0, 1, 0, 2, 0, 1}, AI_BALANCED},
-    {"CINDER",  {11, 5, 8, 8, 10, 10},   TO_FP(2.1), {2, 3, 2, 1, 1, 2}, AI_RUSHDOWN},
-    {"GOLIATH", {15, 8, 12, 12, 14, 14}, TO_FP(0.8), {1, 0, 1, 2, 2, 1}, AI_TANK},
-    {"VOLT",    {12, 6, 14, 14, 12, 12}, TO_FP(1.1), {0, 4, 3, 0, 1, 0}, AI_ZONER},
-    {"KAGE",    {12, 6, 9, 9, 11, 11},   TO_FP(1.5), {2, 1, 2, 1, 0, 2}, AI_RUSHDOWN},
-    {"SIREN",   {11, 6, 10, 10, 12, 12}, TO_FP(1.4), {0, 2, 0, 1, 1, 0}, AI_BALANCED},
-    {"DRIFT",   {12, 6, 10, 10, 12, 12}, TO_FP(1.2), {2, 4, 3, 2, 0, 1}, AI_BALANCED},
-    {"TUSK",    {13, 7, 11, 11, 13, 13}, TO_FP(0.9), {1, 1, 2, 2, 2, 2}, AI_TANK},
-    {"JADE",    {11, 6, 9, 9, 11, 11},   TO_FP(1.7), {0, 2, 1, 1, 1, 1}, AI_RUSHDOWN},
-    {"ECHO",    {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {2, 0, 0, 0, 0, 0}, AI_ZONER}
+    {"ZENITH",  {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {0, 1, 0, 2, 0, 1}, AI_BALANCED, 60, 70},
+    {"CINDER",  {11, 5, 8, 8, 10, 10},   TO_FP(2.1), {2, 3, 2, 1, 1, 2}, AI_RUSHDOWN, 40, 50},
+    {"GOLIATH", {15, 8, 12, 12, 14, 14}, TO_FP(0.8), {1, 0, 1, 2, 2, 1}, AI_TANK,     90, 100},
+    {"VOLT",    {12, 6, 14, 14, 12, 12}, TO_FP(1.1), {0, 4, 3, 0, 1, 0}, AI_ZONER,    50, 60},
+    {"KAGE",    {12, 6, 9, 9, 11, 11},   TO_FP(1.5), {2, 1, 2, 1, 0, 2}, AI_RUSHDOWN, 55, 55},
+    {"SIREN",   {11, 6, 10, 10, 12, 12}, TO_FP(1.4), {0, 2, 0, 1, 1, 0}, AI_BALANCED, 45, 65},
+    {"DRIFT",   {12, 6, 10, 10, 12, 12}, TO_FP(1.2), {2, 4, 3, 2, 0, 1}, AI_BALANCED, 65, 75},
+    {"TUSK",    {13, 7, 11, 11, 13, 13}, TO_FP(0.9), {1, 1, 2, 2, 2, 2}, AI_TANK,     80, 90},
+    {"JADE",    {11, 6, 9, 9, 11, 11},   TO_FP(1.7), {0, 2, 1, 1, 1, 1}, AI_RUSHDOWN, 50, 60},
+    {"ECHO",    {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {2, 0, 0, 0, 0, 0}, AI_ZONER,    60, 70}
 };
 
 #define MAX_BONES 12

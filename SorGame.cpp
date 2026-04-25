@@ -1,5 +1,4 @@
 #include "SorGame.h"
-#include <algorithm>
 
 void SorGame::setup() {
     arduboy.begin();
@@ -10,16 +9,18 @@ void SorGame::setup() {
 }
 
 void SorGame::resetStage() {
+    CharacterData d; memcpy_P(&d, &roster[selectedChar], sizeof(CharacterData));
     Engine::initSkeleton(player, selectedChar, TO_FP(100), false);
     player.y = TO_FP(64);
-    player.health = 100;
+    player.health = d.vitality;
     
     stageProgress = 0;
     maxCameraX = 36; // Initial camera center to put player at sx=100 initially
-    nextEncounterX = TO_FP(400); 
+    nextEncounterX = TO_FP(200); 
     enemiesRemainingInEncounter = 0;
     enemiesDefeated = 0;
     enemiesSpawned = 0;
+    goPromptTimer = 0;
     totalEnemiesToSpawn = 10 + (currentStage * 5);
     bossSpawned = false;
     bossDefeated = false;
@@ -36,14 +37,26 @@ void SorGame::triggerHit(Skeleton &attacker, Skeleton &defender) {
     shakeTimer = 8; freezeTimer = 5;
     
     // Depth check! If they are on different Y planes, no hit
-    if (labs(attacker.y - defender.y) > TO_FP(15)) return;
+    if (abs(attacker.y - defender.y) > TO_FP(15)) return;
 
-    int8_t dmg = 10;
+    CharacterData ad; memcpy_P(&ad, &roster[attacker.charIdx], sizeof(CharacterData));
+    CharacterData dd; memcpy_P(&dd, &roster[defender.charIdx], sizeof(CharacterData));
+
+    int16_t dmg = 10;
     if (attacker.state == CS_PUNCH_ACTIVE) dmg = 8;
     else if (attacker.state == CS_KICK_ACTIVE) dmg = 12;
 
+    // Scale by strength (ad.strength is 1-100, base is ~60)
+    dmg = (dmg * ad.strength) / 60;
+    
+    // Scale by size
     uint8_t attackerSize = Engine::getSize(attacker.charIdx);
     dmg = (int16_t)dmg * attackerSize / 62;
+
+    // Reduce by defender vitality (dd.vitality is 1-100, high vitality takes less % damage)
+    // Actually, vitality is better used as HP. 
+    // Let's use it as a defense factor too:
+    dmg = (dmg * 70) / (30 + dd.vitality);
 
     int16_t kb = TO_FP(3);
     if (attacker.x < defender.x) { defender.vx = kb; attacker.vx = -kb/2; } 
@@ -91,7 +104,7 @@ void SorGame::updatePlayer() {
             for(int i=0; i<MAX_ENEMIES; i++) {
                 if (!enemyActive[i] || enemies[i].state == CS_HITSTUN || enemies[i].health <= 0) continue;
                 int32_t dx = FROM_FP(player.x - enemies[i].x);
-                if (labs(dx) < 30 && labs(player.y - enemies[i].y) < TO_FP(15)) {
+                if (abs(dx) < 30 && abs(player.y - enemies[i].y) < TO_FP(15)) {
                     if ((player.facingLeft && dx > 0) || (!player.facingLeft && dx < 0)) {
                         triggerHit(player, enemies[i]);
                     }
@@ -123,14 +136,18 @@ void SorGame::updatePlayer() {
     if (player.y < LANE_MIN_Y) player.y = LANE_MIN_Y;
     if (player.y > LANE_MAX_Y) player.y = LANE_MAX_Y;
 
+    if (goPromptTimer > 0) goPromptTimer--;
+
     // Camera follow (Trigger when in the right 20% of screen: sx > 102)
     // 102 = (x - camX) + 64  => camX = x - 38
     int32_t targetCamX = player.x - TO_FP(38);
-    if (targetCamX > maxCameraX) {
-        // Only advance if enemies are clear
-        if (enemiesRemainingInEncounter == 0) {
-            maxCameraX = FROM_FP(targetCamX);
-            camera.x = targetCamX;
+    if (enemiesRemainingInEncounter == 0) {
+        if (targetCamX > camera.x) {
+            int32_t diff = (targetCamX - camera.x) / 8; // Ease in
+            if (diff < TO_FP(1)) diff = TO_FP(1); // Min speed
+            camera.x += diff;
+            if (camera.x > targetCamX) camera.x = targetCamX;
+            maxCameraX = FROM_FP(camera.x);
             stageProgress = camera.x;
         }
     }
@@ -180,7 +197,7 @@ void SorGame::updateEnemies() {
                 }
             }
             enemiesRemainingInEncounter = count;
-            nextEncounterX += TO_FP(600); // Next one in 600px
+            nextEncounterX += TO_FP(300); // Next one in 300px
         }
     }
 
@@ -198,7 +215,10 @@ void SorGame::updateEnemies() {
             }
             if (e.stateTimer == 0) {
                 enemyActive[i] = false;
-                if (enemiesRemainingInEncounter > 0) enemiesRemainingInEncounter--;
+                if (enemiesRemainingInEncounter > 0) {
+                    enemiesRemainingInEncounter--;
+                    if (enemiesRemainingInEncounter == 0 && !bossSpawned) goPromptTimer = 90;
+                }
                 
                 // Drop pickup chance
                 if (random(0, 100) < 20) { // 20% chance
@@ -231,7 +251,7 @@ void SorGame::updateEnemies() {
             
             if (e.state == CS_PUNCH_ACTIVE) {
                 int32_t dx = FROM_FP(e.x - player.x);
-                if (labs(dx) < 30 && labs(e.y - player.y) < TO_FP(15)) {
+                if (abs(dx) < 30 && abs(e.y - player.y) < TO_FP(15)) {
                     if ((e.facingLeft && dx > 0) || (!e.facingLeft && dx < 0)) {
                         if (player.state != CS_HITSTUN) triggerHit(e, player);
                     }
@@ -255,13 +275,13 @@ void SorGame::updateEnemies() {
             int attackers = 0;
             for(int j=0; j<MAX_ENEMIES; j++) {
                 if (j != i && enemyActive[j] && enemies[j].health > 0) {
-                    if (labs(player.x - enemies[j].x) < TO_FP(40) && labs(player.y - enemies[j].y) < TO_FP(20)) {
+                    if (abs(player.x - enemies[j].x) < TO_FP(40) && abs(player.y - enemies[j].y) < TO_FP(20)) {
                         attackers++;
                     }
                 }
             }
 
-            bool isClose = (labs(dx) < TO_FP(40) && labs(dy) < TO_FP(15));
+            bool isClose = (abs(dx) < TO_FP(40) && abs(dy) < TO_FP(15));
             
             if (isClose) {
                 if (attackers >= 2 && random(0, 100) < 60) {
@@ -294,8 +314,8 @@ void SorGame::updateEnemies() {
                 int32_t tdx = targetX - e.x;
                 int32_t tdy = targetY - e.y;
 
-                if (labs(tdx) > TO_FP(5)) { e.vx = (tdx > 0) ? e.walkSpeed : -e.walkSpeed; moving = true; }
-                if (labs(tdy) > TO_FP(5)) { e.vy = (tdy > 0) ? e.walkSpeed : -e.walkSpeed; moving = true; }
+                if (abs(tdx) > TO_FP(5)) { e.vx = (tdx > 0) ? e.walkSpeed : -e.walkSpeed; moving = true; }
+                if (abs(tdy) > TO_FP(5)) { e.vy = (tdy > 0) ? e.walkSpeed : -e.walkSpeed; moving = true; }
 
                 e.aiTimer = random(5, 20); // Hold this trajectory briefly
             }
@@ -322,7 +342,7 @@ void SorGame::updateFight() {
     if (player.health > 0) {
         for(int i=0; i<MAX_PICKUPS; i++) {
             if (pickups[i].active) {
-                if (labs(player.x - pickups[i].x) < TO_FP(15) && labs(player.y - pickups[i].y) < TO_FP(10)) {
+                if (abs(player.x - pickups[i].x) < TO_FP(15) && abs(player.y - pickups[i].y) < TO_FP(10)) {
                     player.health += 25;
                     if (player.health > 100) player.health = 100;
                     pickups[i].active = false;
@@ -488,14 +508,20 @@ void SorGame::drawFight() {
             }
         }
 
-        Engine::drawScaledCircle(arduboy, s->x, s->y, 10, camera, shakeTimer);
-        Engine::updateSkeleton(*s, poses[pIdx], arduboy.frameCount, pIdx);
-        Engine::drawSkeleton(arduboy, *s, camera, shakeTimer);
+        // Depth-based scaling (pseudo-perspective)
+        // LANE_MIN_Y (48) -> 80% zoom, LANE_MAX_Y (80) -> 120% zoom (40% total range)
+        int16_t z = 80 + ((FROM_FP(s->y) - FROM_FP(LANE_MIN_Y)) * 40) / (FROM_FP(LANE_MAX_Y) - FROM_FP(LANE_MIN_Y));
+        Camera tempCam = camera;
+        tempCam.zoom = (camera.zoom * z) / 100;
 
-        // Enemy health bars
+        Engine::drawScaledCircle(arduboy, s->x, s->y, (10 * z) / 100, tempCam, shakeTimer);
+        Engine::updateSkeleton(*s, poses[pIdx], arduboy.frameCount, pIdx);
+        Engine::drawSkeleton(arduboy, *s, tempCam, shakeTimer);
+
+        // Enemy health bars (also scaled)
         if (s != &player) {
-            int16_t hx = FROM_FP(s->x - camera.x) + 64 - 5;
-            int16_t hy = FROM_FP(s->y - camera.y) + 32 - 35;
+            int16_t hx = (int16_t)((((s->x - camera.x) * tempCam.zoom) / 100) >> FP_SHIFT) + 64 - 5;
+            int16_t hy = (int16_t)((((s->y - camera.y) * tempCam.zoom) / 100) >> FP_SHIFT) + 32 - (35 * z / 100);
             arduboy.drawRect(hx, hy, 12, 3, WHITE);
             int8_t bw = (s->health * 10) / (s->charIdx == 9 ? 100 : 30);
             if (bw > 10) bw = 10;
@@ -518,7 +544,13 @@ void SorGame::drawFight() {
     arduboy.setCursor(65, 0);
     if (bossSpawned) arduboy.print(F("BOSS"));
     else if (enemiesRemainingInEncounter > 0) arduboy.print(F("FIGHT!"));
-    else { arduboy.print(F("GO->")); }
+    else { 
+        arduboy.print(F("GO->")); 
+        if (goPromptTimer > 0 && (goPromptTimer / 10) % 2) {
+            arduboy.setCursor(45, 25);
+            arduboy.print(F("GO... ->"));
+        }
+    }
 }
 
 void SorGame::drawMenu() {
@@ -535,24 +567,41 @@ void SorGame::drawMenu() {
 void SorGame::drawCharSelect() {
     arduboy.setCursor(15, 5);
     arduboy.print(F("SELECT FIGHTER"));
-    
+
     CharacterData d; memcpy_P(&d, &roster[selectedChar], sizeof(CharacterData));
     arduboy.setCursor(10, 20); arduboy.print(F("< ")); arduboy.print(d.name); arduboy.print(F(" >"));
-    
-    Engine::initSkeleton(player, selectedChar, camera.x, false);
-    player.y = TO_FP(64);
+
+    // Draw Stats
+    const char* labels[] = {"STR", "SPD", "VIT"};
+    uint8_t vals[] = {d.strength, (uint8_t)(FROM_FP(d.walkSpeed * 40)), d.vitality};
+    for(int i=0; i<3; i++) {
+        arduboy.setCursor(10, 35 + i*10);
+        arduboy.print(labels[i]);
+        arduboy.drawRect(35, 36 + i*10, 32, 5, WHITE);
+        int8_t bw = (vals[i] * 30) / 100;
+        if (bw > 30) bw = 30;
+        arduboy.fillRect(36, 37 + i*10, bw, 3, WHITE);
+    }
+
+    // Move character further right and down
+    if (player.charIdx != selectedChar) {
+        Engine::initSkeleton(player, selectedChar, camera.x + TO_FP(35), false);
+    }
+    player.y = TO_FP(74);
     camera.y = TO_FP(48);
-    Engine::updateSkeleton(player, poses[CS_IDLE], arduboy.frameCount, CS_IDLE);
-    Engine::drawSkeleton(arduboy, player, camera, 0);
     
+    // Slower walking animation
+    uint8_t pIdx = 1 + (arduboy.frameCount / 12) % 4; 
+    Engine::updateSkeleton(player, poses[pIdx], arduboy.frameCount, pIdx);
+    Engine::drawSkeleton(arduboy, player, camera, 0);
+
     if (arduboy.justPressed(LEFT_BUTTON) && selectedChar > 0) selectedChar--;
     if (arduboy.justPressed(RIGHT_BUTTON) && selectedChar < 2) selectedChar++; // Only 3 playable characters
-    
+
     if (arduboy.justPressed(A_BUTTON)) {
         currentState = STATE_STAGE_INTRO;
     }
 }
-
 void SorGame::drawStageIntro() {
     arduboy.setCursor(30, 25);
     arduboy.print(F("STAGE ")); arduboy.print(currentStage + 1);
