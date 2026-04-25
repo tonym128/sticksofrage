@@ -9,8 +9,8 @@
 
 #define MAX_ENEMIES 4
 #define LEVEL_END_X TO_FP(2500)
-#define LANE_MIN_Y TO_FP(80)
-#define LANE_MAX_Y TO_FP(112)
+#define LANE_MIN_Y TO_FP(48)
+#define LANE_MAX_Y TO_FP(80)
 
 class SorGame {
 public:
@@ -49,6 +49,8 @@ protected:
     uint8_t currentStage = 0; // 0 to 4
     int32_t stageProgress = 0;
     int32_t maxCameraX = 0;
+    int32_t nextEncounterX = 0;
+    uint8_t enemiesRemainingInEncounter = 0;
     
     uint8_t enemiesDefeated = 0;
     uint8_t totalEnemiesToSpawn = 0;
