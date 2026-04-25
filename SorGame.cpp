@@ -21,6 +21,7 @@ void SorGame::resetStage() {
     enemiesDefeated = 0;
     enemiesSpawned = 0;
     goPromptTimer = 0;
+    delayTimer = 0;
     totalEnemiesToSpawn = 10 + (currentStage * 5);
     bossSpawned = false;
     bossDefeated = false;
@@ -167,13 +168,13 @@ void SorGame::updateEnemies() {
             // Final Boss Encounter
             for(int i=0; i<MAX_ENEMIES; i++) {
                 if (!enemyActive[i]) {
-                    Engine::initSkeleton(enemies[i], 9, camera.x + TO_FP(80), true);
+                    Engine::initSkeleton(enemies[i], 9, camera.x + TO_FP(140), true);
                     enemies[i].y = TO_FP(64);
                     enemies[i].health = 100;
-                    enemies[i].aiTimer = 60; 
                     enemyActive[i] = true;
                     bossSpawned = true;
                     enemiesRemainingInEncounter = 1;
+                    currentState = STATE_BOSS_INTRO;
                     break;
                 }
             }
@@ -357,7 +358,7 @@ void SorGame::updateFight() {
         delayTimer--;
         if (delayTimer == 0) currentState = STATE_RESULTS;
     } else if (bossDefeated) {
-        if (delayTimer == 0) delayTimer = 120;
+        if (delayTimer == 0) delayTimer = 60;
         delayTimer--;
         if (delayTimer == 0) {
             currentStage++;
@@ -661,6 +662,41 @@ void SorGame::drawEnding() {
     if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
 }
 
+void SorGame::drawBossIntro() {
+    // Logic for boss walking in is handled by keeping them in CS_WALK until reached
+    for(int i=0; i<MAX_ENEMIES; i++) {
+        if (enemyActive[i] && enemies[i].charIdx == 9) {
+            int32_t targetX = camera.x + TO_FP(40);
+            if (enemies[i].x > targetX) {
+                enemies[i].x -= TO_FP(1);
+                enemies[i].state = CS_WALK;
+                drawFight(); // Still walking, keep drawing stage
+            } else {
+                enemies[i].state = CS_IDLE;
+                
+                // Show smack talk on empty screen (loop already cleared it)
+                CharacterData d; memcpy_P(&d, &roster[9], sizeof(CharacterData));
+                arduboy.setCursor(0, 0);
+                arduboy.print(d.name);
+                arduboy.print(F(":"));
+                
+                arduboy.setCursor(0, 15);
+                char buffer[100];
+                strcpy_P(buffer, (char*)pgm_read_ptr(&boss_talks[currentStage]));
+                arduboy.print(buffer);
+                
+                arduboy.setCursor(20, 55);
+                if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A TO FIGHT"));
+                
+                if (arduboy.justPressed(A_BUTTON)) {
+                    currentState = STATE_PLAYING;
+                    enemies[i].aiTimer = 30; // Start fighting soon
+                }
+            }
+        }
+    }
+}
+
 void SorGame::loop() {
     if (!arduboy.nextFrame()) return;
     arduboy.pollButtons();
@@ -673,6 +709,7 @@ void SorGame::loop() {
         case STATE_CHAR_INTRO: drawCharIntro(); break;
         case STATE_STAGE_INTRO: drawStageIntro(); break;
         case STATE_PLAYING: updateFight(); drawFight(); break;
+        case STATE_BOSS_INTRO: drawBossIntro(); break;
         case STATE_STAGE_CLEAR: drawStageClear(); break;
         case STATE_ENDING: drawEnding(); break;
         case STATE_RESULTS:
