@@ -7,7 +7,7 @@
 #include "logo.h"
 #include "stick.h"
 
-#define MAX_ENEMIES 4
+#define MAX_ENEMIES 3
 #define MAX_PICKUPS 2
 #define LEVEL_END_X TO_FP(1250)
 #define LANE_MIN_Y TO_FP(50)

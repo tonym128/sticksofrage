@@ -31,7 +31,17 @@ void Engine::drawScaledCircle(Arduboy2 &arduboy, int32_t x, int32_t y, int8_t r,
 
 void Engine::drawFace(Arduboy2 &arduboy, int16_t x, int16_t y, FaceData& f, bool flip, int16_t zoom) {
     int8_t s = (zoom > 120) ? 1 : 0;
-    if (f.headShape == 0) arduboy.drawCircle(x, y, 4+s); else if (f.headShape == 1) arduboy.drawRect(x-(3+s), y-(3+s), 7+s*2, 7+s*2); else arduboy.drawCircle(x, y, 3+s);
+    if (f.headShape == 0) {
+        arduboy.fillCircle(x, y, 4+s, BLACK);
+        arduboy.drawCircle(x, y, 4+s, WHITE);
+    } else if (f.headShape == 1) {
+        arduboy.fillRect(x-(3+s), y-(3+s), 7+s*2, 7+s*2, BLACK);
+        arduboy.drawRect(x-(3+s), y-(3+s), 7+s*2, 7+s*2, WHITE);
+    } else {
+        arduboy.fillCircle(x, y, 3+s, BLACK);
+        arduboy.drawCircle(x, y, 3+s, WHITE);
+    }
+    
     if (f.hairStyle == 1) { for(int i=-(3+s); i<=(3+s); i+=2) arduboy.drawLine(x+i, y-(3+s), x+i, y-(5+s*2)); }
     else if (f.hairStyle == 2) { arduboy.drawFastHLine(x-(3+s), y-(2+s), 7+s*2); }
     else if (f.hairStyle == 4) { arduboy.drawFastVLine(x-(4+s), y-2, 6+s); arduboy.drawFastVLine(x+(4+s), y-2, 6+s); }
@@ -47,7 +57,7 @@ void Engine::updateSkeleton(Skeleton &s, const Pose &target, uint16_t frameCount
     for (uint8_t i = 0; i < MAX_BONES; i++) {
         if (s.bones[i].length == 0 && i > 0) break;
         if (i < 6) { 
-            uint8_t targetAngle = target.angles[i]; 
+            uint8_t targetAngle = pgm_read_byte(&target.angles[i]); 
             if (poseIdx == 0) { // IDLE
                 if (i == 0) targetAngle += breath; 
                 if (i == 2 || i == 3) targetAngle -= (breath * 2); 

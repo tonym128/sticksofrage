@@ -33,7 +33,7 @@ enum CombatState {
 };
 
 // --- Input Buffer ---
-#define INPUT_BUFFER_SIZE 60
+#define INPUT_BUFFER_SIZE 32
 struct InputBuffer {
     uint8_t buttons[INPUT_BUFFER_SIZE];
     uint8_t head;
@@ -112,8 +112,8 @@ const CharacterData roster[] PROGMEM = {
     {"ECHO",    {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {2, 0, 0, 0, 0, 0}, AI_ZONER,    60, 70}
 };
 
-#define MAX_BONES 12
+#define MAX_BONES 8
 struct Bone { int8_t parent; uint8_t length; bool isHitbox; bool isHurtbox; };
-struct Skeleton { int32_t x, y; int16_t vx, vy; bool facingLeft, isJumping; CombatState state; uint8_t stateTimer; uint8_t comboCount; int8_t health, special; Bone bones[MAX_BONES]; uint8_t currentAngles[MAX_BONES]; int32_t worldX[MAX_BONES], worldY[MAX_BONES]; int16_t walkSpeed; AIState aiState; uint8_t aiTimer; uint8_t charIdx; uint8_t breathingPhase; };
+struct Skeleton { int32_t x, y; int16_t vx, vy; bool facingLeft, isJumping; CombatState state; uint8_t stateTimer; uint8_t comboCount; int8_t health, special; Bone bones[MAX_BONES]; int8_t currentAngles[MAX_BONES]; int16_t worldX[MAX_BONES], worldY[MAX_BONES]; int16_t walkSpeed; AIState aiState; uint8_t aiTimer; uint8_t charIdx; uint8_t breathingPhase; };
 
 #endif

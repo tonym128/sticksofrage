@@ -399,73 +399,85 @@ void SorGame::drawBackground() {
         int16_t p4 = (camX / 4) % 128;
         for (int i = -1; i < 2; i++) {
             int16_t bx = (i * 128) - p4;
-            arduboy.drawLine(bx, 20, bx + 30, 5); arduboy.drawLine(bx + 30, 5, bx + 60, 20);
-            arduboy.drawLine(bx + 50, 15, bx + 80, 0); arduboy.drawLine(bx + 80, 0, bx + 120, 20);
+            arduboy.drawLine(bx, 20, bx + 30, 5, WHITE); arduboy.drawLine(bx + 30, 5, bx + 60, 20, WHITE);
+            arduboy.drawLine(bx + 50, 15, bx + 80, 0, WHITE); arduboy.drawLine(bx + 80, 0, bx + 120, 20, WHITE);
         }
         int16_t p2 = (camX / 2) % 64;
         for (int i = -1; i < 3; i++) {
             int16_t bx = (i * 64) - p2;
-            arduboy.drawRect(bx, 10, 20, 22); arduboy.drawRect(bx + 25, 15, 30, 17);
+            arduboy.fillRect(bx, 10, 20, 22, BLACK);
+            arduboy.drawRect(bx, 10, 20, 22, WHITE); 
+            arduboy.fillRect(bx + 25, 15, 30, 17, BLACK);
+            arduboy.drawRect(bx + 25, 15, 30, 17, WHITE);
         }
         int16_t p1 = camX % 80;
         for (int i = -1; i < 3; i++) {
             int16_t lx = (i * 80) - p1;
-            arduboy.drawFastVLine(lx, 5, 27); arduboy.drawFastHLine(lx - 5, 5, 11);
+            arduboy.drawFastVLine(lx, 5, 27, WHITE); arduboy.drawFastHLine(lx - 5, 5, 11, WHITE);
         }
     } else if (currentStage == 1) { // PARK
         int16_t p2 = (camX / 2) % 64;
         for (int i = -1; i < 3; i++) {
             int16_t bx = (i * 64) - p2;
-            arduboy.drawCircle(bx + 15, 15, 10); arduboy.drawFastVLine(bx + 15, 25, 7); // Tree
-            arduboy.drawCircle(bx + 45, 12, 8); arduboy.drawFastVLine(bx + 45, 20, 12); // Tree
+            arduboy.fillCircle(bx + 15, 15, 10, BLACK);
+            arduboy.drawCircle(bx + 15, 15, 10, WHITE); 
+            arduboy.drawFastVLine(bx + 15, 25, 7, WHITE);
+            arduboy.fillCircle(bx + 45, 12, 8, BLACK);
+            arduboy.drawCircle(bx + 45, 12, 8, WHITE); 
+            arduboy.drawFastVLine(bx + 45, 20, 12, WHITE);
         }
         int16_t p1 = camX % 100;
         for (int i = -1; i < 3; i++) {
             int16_t bx = (i * 100) - p1;
-            arduboy.drawRect(bx + 10, 25, 20, 5); // Bench
-            arduboy.drawFastVLine(bx + 12, 30, 2); arduboy.drawFastVLine(bx + 28, 30, 2);
+            arduboy.fillRect(bx + 10, 25, 20, 5, BLACK);
+            arduboy.drawRect(bx + 10, 25, 20, 5, WHITE); // Bench
+            arduboy.drawFastVLine(bx + 12, 30, 2, WHITE); arduboy.drawFastVLine(bx + 28, 30, 2, WHITE);
         }
     } else if (currentStage == 2) { // OPEN SPACE
         int16_t p4 = (camX / 4) % 128;
         for (int i = -1; i < 2; i++) {
             int16_t bx = (i * 128) - p4;
-            arduboy.drawCircle(bx + 40, 5, 3); // Bird/Cloud?
+            arduboy.drawCircle(bx + 40, 5, 3, WHITE); // Bird/Cloud?
         }
         int16_t p2 = (camX / 2) % 80;
         for (int i = -1; i < 3; i++) {
             int16_t bx = (i * 80) - p2;
-            arduboy.drawRect(bx, 20, 40, 12); // Low fence
-            arduboy.drawFastVLine(bx + 10, 20, 12); arduboy.drawFastVLine(bx + 30, 20, 12);
+            arduboy.fillRect(bx, 20, 40, 12, BLACK);
+            arduboy.drawRect(bx, 20, 40, 12, WHITE); // Low fence
+            arduboy.drawFastVLine(bx + 10, 20, 12, WHITE); arduboy.drawFastVLine(bx + 30, 20, 12, WHITE);
         }
     } else if (currentStage == 3) { // DESERT
         int16_t p4 = (camX / 4) % 128;
         for (int i = -1; i < 2; i++) {
             int16_t bx = (i * 128) - p4;
-            arduboy.drawLine(bx, 25, bx + 64, 15); arduboy.drawLine(bx + 64, 15, bx + 128, 25); // Dunes
+            arduboy.drawLine(bx, 25, bx + 64, 15, WHITE); arduboy.drawLine(bx + 64, 15, bx + 128, 25, WHITE); // Dunes
         }
         int16_t p1 = camX % 90;
         for (int i = -1; i < 3; i++) {
             int16_t bx = (i * 90) - p1;
-            arduboy.drawFastVLine(bx + 20, 15, 15); arduboy.drawFastHLine(bx + 15, 20, 10); // Cactus
-            arduboy.drawCircle(bx + 60, 28, 4); // Rock
+            arduboy.drawFastVLine(bx + 20, 15, 15, WHITE); arduboy.drawFastHLine(bx + 15, 20, 10, WHITE); // Cactus
+            arduboy.fillCircle(bx + 60, 28, 4, BLACK);
+            arduboy.drawCircle(bx + 60, 28, 4, WHITE); // Rock
         }
     } else { // CITY NIGHT
         int16_t p4 = (camX / 4) % 64;
         for (int i = -1; i < 4; i++) {
             int16_t bx = (i * 64) - p4;
-            arduboy.drawRect(bx + 5, 5, 15, 27); // Skyscrapers
-            arduboy.drawPixel(bx + 8, 8); arduboy.drawPixel(bx + 12, 15);
+            arduboy.fillRect(bx + 5, 5, 15, 27, BLACK);
+            arduboy.drawRect(bx + 5, 5, 15, 27, WHITE); // Skyscrapers
+            arduboy.drawPixel(bx + 8, 8, WHITE); arduboy.drawPixel(bx + 12, 15, WHITE);
         }
         int16_t p1 = camX % 40;
         for (int i = -1; i < 5; i++) {
             int16_t lx = (i * 40) - p1;
-            arduboy.drawFastVLine(lx, 15, 17); // Light poles
-            arduboy.drawCircle(lx, 15, 2);
+            arduboy.drawFastVLine(lx, 15, 17, WHITE); // Light poles
+            arduboy.fillCircle(lx, 15, 2, BLACK);
+            arduboy.drawCircle(lx, 15, 2, WHITE);
         }
     }
 
     // Ground line separating background and lane
-    arduboy.drawFastHLine(0, 32, 128);
+    arduboy.drawFastHLine(0, 32, 128, WHITE);
 
     // Ground lines (in the lane)
     int16_t camOffsetX = camX % 40;
