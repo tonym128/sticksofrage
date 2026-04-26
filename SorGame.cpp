@@ -123,7 +123,7 @@ void SorGame::updatePlayer() {
             for(int i=0; i<MAX_ENEMIES; i++) {
                 if (!enemyActive[i] || enemies[i].state == CS_HITSTUN || enemies[i].health <= 0) continue;
                 int32_t dx = FROM_FP(player.x - enemies[i].x);
-                if (abs(dx) < 30 && abs(player.y - enemies[i].y) < TO_FP(15)) {
+                if (abs(dx) < 30 && abs(player.y - enemies[i].y) < TO_FP(7)) {
                     if ((player.facingLeft && dx > 0) || (!player.facingLeft && dx < 0)) {
                         triggerHit(player, enemies[i]);
                     }
@@ -286,7 +286,7 @@ void SorGame::updateEnemies() {
             
             if (e.state == CS_PUNCH_ACTIVE) {
                 int32_t dx = FROM_FP(e.x - player.x);
-                if (abs(dx) < 18 && abs(e.y - player.y) < TO_FP(10)) {
+                if (abs(dx) < 18 && abs(e.y - player.y) < TO_FP(7)) {
                     if ((e.facingLeft && dx > 0) || (!e.facingLeft && dx < 0)) {
                         if (player.state != CS_HITSTUN) triggerHit(e, player);
                     }
@@ -306,17 +306,20 @@ void SorGame::updateEnemies() {
         if (e.aiTimer > 0) {
             e.aiTimer--;
         } else {
+            int32_t attackDistX = TO_FP(40 - currentStage * 4);
+            int32_t attackDistY = TO_FP(7);
+
             // Count attackers
             int attackers = 0;
             for(int j=0; j<MAX_ENEMIES; j++) {
                 if (j != i && enemyActive[j] && enemies[j].health > 0) {
-                    if (abs(player.x - enemies[j].x) < TO_FP(40) && abs(player.y - enemies[j].y) < TO_FP(20)) {
+                    if (abs(player.x - enemies[j].x) < attackDistX && abs(player.y - enemies[j].y) < (attackDistY + TO_FP(5))) {
                         attackers++;
                     }
                 }
             }
 
-            bool isClose = (abs(dx) < TO_FP(40) && abs(dy) < TO_FP(15));
+            bool isClose = (abs(dx) < attackDistX && abs(dy) < attackDistY);
             
             if (isClose) {
                 uint8_t timerScale = (e.aiBehavior == 1) ? 3 : 6; // Aggressive wait significantly less
@@ -339,11 +342,14 @@ void SorGame::updateEnemies() {
                 int32_t targetY = player.y;
 
                 if (e.aiBehavior == 0) { // Balanced tries to flank
-                    if (i % 2 == 0) targetX -= TO_FP(30);
-                    else targetX += TO_FP(30);
+                    int32_t flankDistX = TO_FP(30 - currentStage * 3);
+                    int32_t flankDistY = TO_FP(8 - (currentStage / 2));
+
+                    if (i % 2 == 0) targetX -= flankDistX;
+                    else targetX += flankDistX;
                     
-                    if (i % 3 == 0) targetY -= TO_FP(10);
-                    else targetY += TO_FP(10);
+                    if (i % 3 == 0) targetY -= flankDistY;
+                    else targetY += flankDistY;
                 }
                 // Aggressive (behavior 1) goes straight for targetX/targetY (player)
 
