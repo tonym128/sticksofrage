@@ -63,7 +63,7 @@ void Engine::updateSkeleton(Skeleton &s, const Pose &target, uint16_t frameCount
                 if (i == 2 || i == 3) targetAngle -= (breath * 2); 
                 if (i == 4 || i == 5) targetAngle += (breath / 2); 
             }
-            int16_t diff = (int16_t)targetAngle - s.currentAngles[i]; 
+            int8_t diff = (int8_t)(targetAngle - s.currentAngles[i]); 
             if (abs(diff) < 2) s.currentAngles[i] = targetAngle; else s.currentAngles[i] += (diff / 4); 
         }
         int32_t startX, startY; uint8_t angle = s.currentAngles[i]; if (s.facingLeft) angle = 128 - angle;
