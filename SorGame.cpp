@@ -27,6 +27,7 @@ void SorGame::resetStage() {
     bossDefeated = false;
     
     for(int i=0; i<MAX_ENEMIES; i++) enemyActive[i] = false;
+    memset(enemies, 0, sizeof(enemies));
     for(int i=0; i<MAX_PICKUPS; i++) pickups[i].active = false;
     pickupTimer = 0;
     camera.x = TO_FP(maxCameraX);
@@ -93,7 +94,11 @@ bool SorGame::checkCombo(const uint8_t* sequence, uint8_t length) {
 }
 
 void SorGame::updatePlayer() {
-    if (freezeTimer > 0) { freezeTimer--; return; }
+    if (freezeTimer > 0 || currentState == STATE_BOSS_INTRO) { 
+        if (freezeTimer > 0) freezeTimer--; 
+        if (currentState == STATE_BOSS_INTRO) player.state = CS_IDLE;
+        return; 
+    }
 
     if (player.stateTimer > 0) player.stateTimer--;
 
@@ -222,6 +227,7 @@ void SorGame::updateEnemies() {
                     enemies[i].aiTimer = (uint8_t)((10 + (i * 10)) * (6 - currentStage)) / 10;
                     if (enemies[i].aiTimer < 2) enemies[i].aiTimer = 2; // Min floor
                     enemies[i].aiBehavior = (random(0, 100) < 70) ? 1 : 0; // 70% Aggressive
+                    enemies[i].isBoss = false;
                     enemyActive[i] = true;
                     enemiesSpawned++;
                 }
@@ -262,8 +268,7 @@ void SorGame::updateEnemies() {
                     }
                 }
 
-                if (bossSpawned && e.isBoss) bossDefeated = true;
-                else enemiesDefeated++;
+                if (!enemies[i].isBoss) enemiesDefeated++;
             }
             continue;
         }
@@ -383,6 +388,15 @@ void SorGame::updateFight() {
 
     updatePlayer();
     updateEnemies();
+
+    // Explicit boss defeat check
+    if (bossSpawned && !bossDefeated) {
+        for(int i=0; i<MAX_ENEMIES; i++) {
+            if (enemyActive[i] && enemies[i].isBoss && enemies[i].health <= 0) {
+                bossDefeated = true;
+            }
+        }
+    }
 
     // Pickup collection
     if (player.health > 0) {
@@ -776,12 +790,25 @@ void SorGame::updateStageIntro() {
 }
 
 void SorGame::updateBossIntro() {
+    // 1. Scroll camera until player is on the left (sx ~ 30)
+    // sx = (player.x - camera.x) + 64 => 30 = px - camX + 64 => camX = px + 34
+    int32_t targetCamX = player.x + TO_FP(34);
+    if (camera.x < targetCamX) {
+        camera.x += TO_FP(1);
+        if (camera.x > targetCamX) camera.x = targetCamX;
+        player.state = CS_IDLE;
+        player.facingLeft = false;
+        return; // Wait for camera
+    }
+
+    // 2. Bring in the boss
     for(int i=0; i<MAX_ENEMIES; i++) {
-        if (enemyActive[i] && enemies[i].charIdx == currentBossCharIdx) {
-            int32_t targetX = camera.x + TO_FP(40);
+        if (enemyActive[i] && enemies[i].isBoss) {
+            int32_t targetX = camera.x + TO_FP(40); // sx ~ 104
             if (enemies[i].x > targetX) {
                 enemies[i].x -= TO_FP(1);
                 enemies[i].state = CS_WALK;
+                enemies[i].facingLeft = true;
             } else {
                 enemies[i].state = CS_IDLE;
                 if (arduboy.justPressed(A_BUTTON)) {
