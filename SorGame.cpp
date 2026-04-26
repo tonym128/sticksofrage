@@ -131,8 +131,8 @@ void SorGame::updatePlayer() {
     if (arduboy.justPressed(A_BUTTON)) { player.state = CS_PUNCH_STARTUP; player.stateTimer = 5; moving = false; }
     else if (arduboy.justPressed(B_BUTTON)) { player.state = CS_KICK_STARTUP; player.stateTimer = 8; moving = false; }
 
-    if (moving && player.state == CS_IDLE) player.state = CS_WALK;
-    else if (!moving && player.state == CS_WALK) player.state = CS_IDLE;
+    if (moving && player.state == CS_IDLE) { player.state = CS_WALK; player.comboCount = 0; }
+    else if (!moving && player.state == CS_WALK) { player.state = CS_IDLE; player.comboCount = 0; }
 
     player.x += player.vx;
     player.y += player.vy;
@@ -157,9 +157,17 @@ void SorGame::updatePlayer() {
         }
     }
 
-    // Screen Bounds check (Keep on screen)
-    if (player.x < camera.x - TO_FP(60)) player.x = camera.x - TO_FP(60);
-    if (player.x > camera.x + TO_FP(60)) player.x = camera.x + TO_FP(60);
+    // Screen Bounds check (Keep on screen + Bounce logic for player)
+    int32_t minX = camera.x - TO_FP(60);
+    int32_t maxX = camera.x + TO_FP(60);
+    if (player.x < minX) { 
+        player.x = minX; 
+        if (player.state == CS_HITSTUN) player.vx = abs(player.vx); // Bounce
+    }
+    if (player.x > maxX) { 
+        player.x = maxX; 
+        if (player.state == CS_HITSTUN) player.vx = -abs(player.vx); // Bounce
+    }
 }
 #include "SorGame.h"
 
@@ -332,6 +340,18 @@ void SorGame::updateEnemies() {
         else if (!moving && e.state == CS_WALK) e.state = CS_IDLE;
         
         e.x += e.vx; e.y += e.vy;
+
+        // Screen edge bounce
+        int32_t eminX = camera.x - TO_FP(62);
+        int32_t emaxX = camera.x + TO_FP(62);
+        if (e.x < eminX) { 
+            e.x = eminX; 
+            if (e.state == CS_HITSTUN) e.vx = abs(e.vx); 
+        }
+        if (e.x > emaxX) { 
+            e.x = emaxX; 
+            if (e.state == CS_HITSTUN) e.vx = -abs(e.vx); 
+        }
     }
 }
 #include "SorGame.h"
