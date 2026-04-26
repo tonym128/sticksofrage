@@ -123,6 +123,6 @@ const CharacterData roster[] PROGMEM = {
 
 #define MAX_BONES 8
 struct Bone { int8_t parent; uint8_t length; bool isHitbox; bool isHurtbox; };
-struct Skeleton { int32_t x, y; int16_t vx, vy; bool facingLeft, isJumping; CombatState state; uint8_t stateTimer; uint8_t comboCount; int8_t health, special; Bone bones[MAX_BONES]; uint8_t currentAngles[MAX_BONES]; int32_t worldX[MAX_BONES], worldY[MAX_BONES]; int16_t walkSpeed; AIState aiState; uint8_t aiTimer; uint8_t charIdx; uint8_t breathingPhase; };
+struct Skeleton { int32_t x, y; int16_t vx, vy; bool facingLeft, isJumping; CombatState state; uint8_t stateTimer; uint8_t comboCount; int8_t health, special; Bone bones[MAX_BONES]; uint8_t currentAngles[MAX_BONES]; int32_t worldX[MAX_BONES], worldY[MAX_BONES]; int16_t walkSpeed; AIState aiState; uint8_t aiTimer; uint8_t charIdx; uint8_t breathingPhase; uint8_t aiBehavior; bool isBoss; };
 
 #endif

@@ -62,17 +62,16 @@ void SorGame::triggerHit(Skeleton &attacker, Skeleton &defender) {
     dmg = (int16_t)dmg * attackerSize / 62;
     dmg = (dmg * 70) / (30 + dd.vitality);
 
-    bool isBossAttacker = (attacker.charIdx == currentBossCharIdx && &attacker != &player);
-    if (isBossAttacker) dmg = (dmg * 15) / 10; // Bosses deal 50% more base damage
+    if (attacker.isBoss && &attacker != &player) dmg = (dmg * 15) / 10; // Bosses deal 50% more base damage
     
-    // Scale enemy damage by 10% per stage
+    // Scale enemy damage by 10% per stage (+40% base start)
     if (&attacker != &player) {
-        dmg = (dmg * (10 + currentStage)) / 10;
+        dmg = (dmg * (14 + currentStage)) / 10;
     }
 
     // Knockback
     int16_t kb = TO_FP(2) + (attacker.comboCount * TO_FP(1));
-    if (isBossAttacker) kb += TO_FP(2); // Bosses have higher knockback
+    if (attacker.isBoss && &attacker != &player) kb += TO_FP(2); // Bosses have higher knockback
     
     if (attacker.x < defender.x) { defender.vx = kb; attacker.vx = -kb/4; } 
     else { defender.vx = -kb; attacker.vx = kb/4; }
@@ -193,18 +192,21 @@ void SorGame::updateEnemies() {
                     currentBossCharIdx = pgm_read_byte(&stage_bosses[currentStage]);
                     Engine::initSkeleton(enemies[i], currentBossCharIdx, camera.x + TO_FP(140), true);
                     enemies[i].y = TO_FP(64);
-                    enemies[i].health = 100 + (currentStage * 20); // Scaled health
-                    enemies[i].walkSpeed = (enemies[i].walkSpeed * (10 + currentStage)) / 10;
+                    enemies[i].health = 140 + (currentStage * 25); // Starts at 140, scales faster
+                    enemies[i].walkSpeed = (enemies[i].walkSpeed * (14 + currentStage)) / 10;
+                    enemies[i].aiBehavior = 1; // Bosses are always aggressive
+                    enemies[i].isBoss = true;
                     enemyActive[i] = true;
                     bossSpawned = true;
+                    bossDefeated = false; // Reset just in case
                     enemiesRemainingInEncounter = 1;
                     currentState = STATE_BOSS_INTRO;
-                    break;
+                    return; // Stop processing this frame to avoid logic collisions
                 }
             }
         } else {
             // Standard Group Encounter
-            uint8_t count = 2 + (currentStage / 2); // 2-4 enemies
+            uint8_t count = 3 + (currentStage / 2); // Start at 3 enemies, up to 5
             if (count > MAX_ENEMIES) count = MAX_ENEMIES;
             
             for(uint8_t i=0; i<count; i++) {
@@ -215,9 +217,11 @@ void SorGame::updateEnemies() {
                     Engine::initSkeleton(enemies[i], eIdx, spawnX, (spawnX > player.x));
                     enemies[i].y = TO_FP(random(48, 80));
                     enemies[i].health = 30;
-                    // Scale speed and aggression by 10% per stage
-                    enemies[i].walkSpeed = (TO_FP(1.3) * (10 + currentStage)) / 10; 
-                    enemies[i].aiTimer = (uint8_t)((10 + (i * 10)) * (10 - currentStage)) / 10;
+                    // Starting difficulty +40%, then scale 10% per stage
+                    enemies[i].walkSpeed = (TO_FP(1.3) * (14 + currentStage)) / 10; 
+                    enemies[i].aiTimer = (uint8_t)((10 + (i * 10)) * (6 - currentStage)) / 10;
+                    if (enemies[i].aiTimer < 2) enemies[i].aiTimer = 2; // Min floor
+                    enemies[i].aiBehavior = (random(0, 100) < 70) ? 1 : 0; // 70% Aggressive
                     enemyActive[i] = true;
                     enemiesSpawned++;
                 }
@@ -258,7 +262,7 @@ void SorGame::updateEnemies() {
                     }
                 }
 
-                if (bossSpawned && e.charIdx == currentBossCharIdx) bossDefeated = true;
+                if (bossSpawned && e.isBoss) bossDefeated = true;
                 else enemiesDefeated++;
             }
             continue;
@@ -277,7 +281,7 @@ void SorGame::updateEnemies() {
             
             if (e.state == CS_PUNCH_ACTIVE) {
                 int32_t dx = FROM_FP(e.x - player.x);
-                if (abs(dx) < 30 && abs(e.y - player.y) < TO_FP(15)) {
+                if (abs(dx) < 18 && abs(e.y - player.y) < TO_FP(10)) {
                     if ((e.facingLeft && dx > 0) || (!e.facingLeft && dx < 0)) {
                         if (player.state != CS_HITSTUN) triggerHit(e, player);
                     }
@@ -310,29 +314,33 @@ void SorGame::updateEnemies() {
             bool isClose = (abs(dx) < TO_FP(40) && abs(dy) < TO_FP(15));
             
             if (isClose) {
-                if (attackers >= 2 && random(0, 100) < (60 - currentStage * 10)) {
-                    // Too crowded, back off slightly (less likely in later stages)
+                uint8_t timerScale = (e.aiBehavior == 1) ? 3 : 6; // Aggressive wait significantly less
+                if (attackers >= 2 && random(0, 100) < (40 - currentStage * 10)) {
+                    // Too crowded, back off slightly
                     e.vx = (dx > 0) ? -e.walkSpeed : e.walkSpeed;
                     e.vy = (dy > 0) ? -e.walkSpeed : e.walkSpeed;
                     moving = true;
-                    e.aiTimer = (20 * (10 - currentStage)) / 10;
-                } else if (random(0, (40 - currentStage * 5)) == 0) { // Attack more often
+                    e.aiTimer = (timerScale * 2 * (6 - currentStage)) / 10;
+                } else if (random(0, (25 - currentStage * 5)) == 0) { // Attack probability
                     e.state = CS_PUNCH_STARTUP; e.stateTimer = 12; 
                     moving = false; e.vx = 0; e.vy = 0;
-                    e.aiTimer = (30 * (10 - currentStage)) / 10; // Wait less after attack
+                    e.aiTimer = (timerScale * 3 * (6 - currentStage)) / 10; 
                 } else {
-                    e.aiTimer = (10 * (10 - currentStage)) / 10; // Wait menacingly
+                    e.aiTimer = (timerScale * (6 - currentStage)) / 10; 
                 }
             } else {
-                // Move towards player, try to flank
+                // Move towards player
                 int32_t targetX = player.x;
                 int32_t targetY = player.y;
 
-                if (i % 2 == 0) targetX -= TO_FP(30);
-                else targetX += TO_FP(30);
-                
-                if (i % 3 == 0) targetY -= TO_FP(10);
-                else targetY += TO_FP(10);
+                if (e.aiBehavior == 0) { // Balanced tries to flank
+                    if (i % 2 == 0) targetX -= TO_FP(30);
+                    else targetX += TO_FP(30);
+                    
+                    if (i % 3 == 0) targetY -= TO_FP(10);
+                    else targetY += TO_FP(10);
+                }
+                // Aggressive (behavior 1) goes straight for targetX/targetY (player)
 
                 if (targetY < LANE_MIN_Y) targetY = LANE_MIN_Y;
                 if (targetY > LANE_MAX_Y) targetY = LANE_MAX_Y;

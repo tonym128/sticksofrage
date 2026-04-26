@@ -106,7 +106,7 @@ void Engine::drawSkeleton(Arduboy2 &arduboy, Skeleton &s, const Camera &camera, 
 }
 
 void Engine::initSkeleton(Skeleton &s, uint8_t cIdx, int32_t x, bool faceLeft) {
-    s.charIdx = cIdx; s.x = x; s.y = GROUND_Y; s.vx = 0; s.vy = 0; s.facingLeft = faceLeft; s.isJumping = false; s.state = CS_IDLE; s.stateTimer = 0; s.health = 100; s.special = 0; s.aiState = AI_IDLE; s.aiTimer = 0; s.breathingPhase = random(0, 255);
+    s.charIdx = cIdx; s.x = x; s.y = GROUND_Y; s.vx = 0; s.vy = 0; s.facingLeft = faceLeft; s.isJumping = false; s.state = CS_IDLE; s.stateTimer = 0; s.health = 100; s.special = 0; s.aiState = AI_IDLE; s.aiTimer = 0; s.breathingPhase = random(0, 255); s.isBoss = false;
     CharacterData data; memcpy_P(&data, &roster[cIdx], sizeof(CharacterData)); s.walkSpeed = data.walkSpeed;
     s.bones[0] = {-1, data.lengths[0], false, true}; s.bones[1] = {0, data.lengths[1], false, true}; s.bones[2] = {0, data.lengths[2], true, true}; s.bones[3] = {0, data.lengths[3], true, true}; s.bones[4] = {-1, data.lengths[4], true, true}; s.bones[5] = {-1, data.lengths[5], true, true};
     for(int i=6; i<MAX_BONES; i++) s.bones[i].length = 0;
