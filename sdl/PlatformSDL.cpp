@@ -357,8 +357,15 @@ long random(long max) {
 }
 
 long random(long min, long max) {
-    if (max == min) return min;
-    return min + (rand() % (max - min));
+    if (min >= max) return min;
+    return min + (std::rand() % (max - min));
 }
+
+uint32_t millis() {
+    static auto start = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    return std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+}
+
 
 #endif

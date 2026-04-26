@@ -87,6 +87,7 @@ public:
 long random(long max);
 long random(long min, long max);
 inline int32_t labs(int32_t x) { return x < 0 ? -x : x; }
+uint32_t millis();
 
 #endif
 

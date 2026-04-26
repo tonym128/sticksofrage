@@ -62,8 +62,18 @@ void SorGame::triggerHit(Skeleton &attacker, Skeleton &defender) {
     dmg = (int16_t)dmg * attackerSize / 62;
     dmg = (dmg * 70) / (30 + dd.vitality);
 
+    bool isBossAttacker = (attacker.charIdx == currentBossCharIdx && &attacker != &player);
+    if (isBossAttacker) dmg = (dmg * 15) / 10; // Bosses deal 50% more base damage
+    
+    // Scale enemy damage by 10% per stage
+    if (&attacker != &player) {
+        dmg = (dmg * (10 + currentStage)) / 10;
+    }
+
     // Knockback
     int16_t kb = TO_FP(2) + (attacker.comboCount * TO_FP(1));
+    if (isBossAttacker) kb += TO_FP(2); // Bosses have higher knockback
+    
     if (attacker.x < defender.x) { defender.vx = kb; attacker.vx = -kb/4; } 
     else { defender.vx = -kb; attacker.vx = kb/4; }
     
@@ -180,9 +190,11 @@ void SorGame::updateEnemies() {
             // Final Boss Encounter
             for(int i=0; i<MAX_ENEMIES; i++) {
                 if (!enemyActive[i]) {
-                    Engine::initSkeleton(enemies[i], 9, camera.x + TO_FP(140), true);
+                    currentBossCharIdx = pgm_read_byte(&stage_bosses[currentStage]);
+                    Engine::initSkeleton(enemies[i], currentBossCharIdx, camera.x + TO_FP(140), true);
                     enemies[i].y = TO_FP(64);
-                    enemies[i].health = 100;
+                    enemies[i].health = 100 + (currentStage * 20); // Scaled health
+                    enemies[i].walkSpeed = (enemies[i].walkSpeed * (10 + currentStage)) / 10;
                     enemyActive[i] = true;
                     bossSpawned = true;
                     enemiesRemainingInEncounter = 1;
@@ -203,8 +215,9 @@ void SorGame::updateEnemies() {
                     Engine::initSkeleton(enemies[i], eIdx, spawnX, (spawnX > player.x));
                     enemies[i].y = TO_FP(random(48, 80));
                     enemies[i].health = 30;
-                    enemies[i].walkSpeed = TO_FP(1.5); // Faster enemies
-                    enemies[i].aiTimer = 10 + (i * 10); // Faster reaction
+                    // Scale speed and aggression by 10% per stage
+                    enemies[i].walkSpeed = (TO_FP(1.3) * (10 + currentStage)) / 10; 
+                    enemies[i].aiTimer = (uint8_t)((10 + (i * 10)) * (10 - currentStage)) / 10;
                     enemyActive[i] = true;
                     enemiesSpawned++;
                 }
@@ -245,7 +258,7 @@ void SorGame::updateEnemies() {
                     }
                 }
 
-                if (bossSpawned && e.charIdx == 9) bossDefeated = true;
+                if (bossSpawned && e.charIdx == currentBossCharIdx) bossDefeated = true;
                 else enemiesDefeated++;
             }
             continue;
@@ -297,18 +310,18 @@ void SorGame::updateEnemies() {
             bool isClose = (abs(dx) < TO_FP(40) && abs(dy) < TO_FP(15));
             
             if (isClose) {
-                if (attackers >= 2 && random(0, 100) < 60) {
-                    // Too crowded, back off slightly
+                if (attackers >= 2 && random(0, 100) < (60 - currentStage * 10)) {
+                    // Too crowded, back off slightly (less likely in later stages)
                     e.vx = (dx > 0) ? -e.walkSpeed : e.walkSpeed;
                     e.vy = (dy > 0) ? -e.walkSpeed : e.walkSpeed;
                     moving = true;
-                    e.aiTimer = 20;
-                } else if (random(0, 40) == 0) { // Slower attacks
-                    e.state = CS_PUNCH_STARTUP; e.stateTimer = 12; // Slower startup
+                    e.aiTimer = (20 * (10 - currentStage)) / 10;
+                } else if (random(0, (40 - currentStage * 5)) == 0) { // Attack more often
+                    e.state = CS_PUNCH_STARTUP; e.stateTimer = 12; 
                     moving = false; e.vx = 0; e.vy = 0;
-                    e.aiTimer = 30; // Wait after attack
+                    e.aiTimer = (30 * (10 - currentStage)) / 10; // Wait less after attack
                 } else {
-                    e.aiTimer = 10; // Wait menacingly
+                    e.aiTimer = (10 * (10 - currentStage)) / 10; // Wait menacingly
                 }
             } else {
                 // Move towards player, try to flank
@@ -532,7 +545,7 @@ void SorGame::drawFight() {
         } else {
             switch(s->state) {
                 case CS_IDLE: pIdx = 0; break;
-                case CS_WALK: pIdx = 1 + (arduboy.frameCount / 8) % 4; break;
+                case CS_WALK: pIdx = 1 + (tickCount / 8) % 4; break;
                 case CS_BLOCK: pIdx = 5; break;
                 case CS_PUNCH_STARTUP:
                 case CS_PUNCH_ACTIVE:
@@ -552,7 +565,7 @@ void SorGame::drawFight() {
         tempCam.zoom = (camera.zoom * z) / 100;
 
         Engine::drawScaledCircle(arduboy, s->x, s->y, (10 * z) / 100, tempCam, shakeTimer);
-        Engine::updateSkeleton(*s, poses[pIdx], arduboy.frameCount, pIdx);
+        Engine::updateSkeleton(*s, poses[pIdx], tickCount, pIdx);
         Engine::drawSkeleton(arduboy, *s, tempCam, shakeTimer);
 
         // Enemy health bars (also scaled)
@@ -560,7 +573,7 @@ void SorGame::drawFight() {
             int16_t hx = (int16_t)((((s->x - camera.x) * tempCam.zoom) / 100) >> FP_SHIFT) + 64 - 5;
             int16_t hy = (int16_t)((((s->y - camera.y) * tempCam.zoom) / 100) >> FP_SHIFT) + 32 - (35 * z / 100);
             arduboy.drawRect(hx, hy, 12, 3, WHITE);
-            int8_t bw = (s->health * 10) / (s->charIdx == 9 ? 100 : 30);
+            int8_t bw = (s->health * 10) / (s->charIdx == currentBossCharIdx ? 100 : 30);
             if (bw > 10) bw = 10;
             arduboy.fillRect(hx + 1, hy + 1, bw, 1, WHITE);
         }
@@ -594,11 +607,6 @@ void SorGame::drawMenu() {
     arduboy.drawBitmap(0, 0, logo + 2, 128, 32, WHITE);
     arduboy.setCursor(20, 45);
     if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A TO START"));
-    
-    if (arduboy.justPressed(A_BUTTON)) {
-        currentState = STATE_CHAR_SELECT;
-        currentStage = 0;
-    }
 }
 
 void SorGame::drawCharSelect() {
@@ -620,25 +628,8 @@ void SorGame::drawCharSelect() {
         arduboy.fillRect(36, 37 + i*10, bw, 3, WHITE);
     }
 
-    // Move character further right and down
-    if (player.charIdx != selectedChar) {
-        Engine::initSkeleton(player, selectedChar, camera.x + TO_FP(35), false);
-    }
-    player.y = TO_FP(74);
-    camera.y = TO_FP(48);
-    
-    // Slower walking animation
-    uint8_t pIdx = 1 + (arduboy.frameCount / 12) % 4; 
-    Engine::updateSkeleton(player, poses[pIdx], arduboy.frameCount, pIdx);
+    // Render character
     Engine::drawSkeleton(arduboy, player, camera, 0);
-
-    if (arduboy.justPressed(LEFT_BUTTON) && selectedChar > 0) selectedChar--;
-    if (arduboy.justPressed(RIGHT_BUTTON) && selectedChar < 2) selectedChar++; // Only 3 playable characters
-
-    if (arduboy.justPressed(A_BUTTON)) {
-        currentState = STATE_CHAR_INTRO;
-        delayTimer = 0; // Reset for next screen
-    }
 }
 
 void SorGame::drawCharIntro() {
@@ -651,22 +642,16 @@ void SorGame::drawCharIntro() {
     char buffer[100];
     strcpy_P(buffer, (char*)pgm_read_ptr(&intros[selectedChar]));
     arduboy.print(buffer);
-    
-    if (arduboy.justPressed(A_BUTTON)) {
-        currentState = STATE_STAGE_INTRO;
-    }
 }
 void SorGame::drawStageIntro() {
-    arduboy.setCursor(30, 25);
+    arduboy.setCursor(43, 20);
     arduboy.print(F("STAGE ")); arduboy.print(currentStage + 1);
     
-    if (delayTimer == 0) delayTimer = 120;
-    delayTimer--;
-    
-    if (delayTimer == 0 || arduboy.justPressed(A_BUTTON)) {
-        resetStage();
-        currentState = STATE_PLAYING;
-    }
+    char buffer[20];
+    strcpy_P(buffer, (char*)pgm_read_ptr(&stage_names[currentStage]));
+    uint8_t len = strlen(buffer);
+    arduboy.setCursor(64 - (len * 3), 35);
+    arduboy.print(buffer);
 }
 
 void SorGame::drawStageClear() {
@@ -680,8 +665,6 @@ void SorGame::drawStageClear() {
 
     arduboy.setCursor(20, 55);
     if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A"));
-
-    if (arduboy.justPressed(A_BUTTON)) currentState = STATE_STAGE_INTRO;
 }
 
 void SorGame::drawEnding() {
@@ -695,23 +678,16 @@ void SorGame::drawEnding() {
 
     arduboy.setCursor(20, 55);
     if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A"));
-    if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
 }
 
 void SorGame::drawBossIntro() {
-    // Logic for boss walking in is handled by keeping them in CS_WALK until reached
     for(int i=0; i<MAX_ENEMIES; i++) {
-        if (enemyActive[i] && enemies[i].charIdx == 9) {
+        if (enemyActive[i] && enemies[i].charIdx == currentBossCharIdx) {
             int32_t targetX = camera.x + TO_FP(40);
             if (enemies[i].x > targetX) {
-                enemies[i].x -= TO_FP(1);
-                enemies[i].state = CS_WALK;
-                drawFight(); // Still walking, keep drawing stage
+                drawFight(); 
             } else {
-                enemies[i].state = CS_IDLE;
-                
-                // Show smack talk on empty screen (loop already cleared it)
-                CharacterData d; memcpy_P(&d, &roster[9], sizeof(CharacterData));
+                CharacterData d; memcpy_P(&d, &roster[currentBossCharIdx], sizeof(CharacterData));
                 arduboy.setCursor(0, 0);
                 arduboy.print(d.name);
                 arduboy.print(F(":"));
@@ -723,38 +699,146 @@ void SorGame::drawBossIntro() {
                 
                 arduboy.setCursor(20, 55);
                 if ((arduboy.frameCount / 30) % 2) arduboy.print(F("PRESS A TO FIGHT"));
-                
+            }
+        }
+    }
+}
+
+void SorGame::update() {
+    tickCount++;
+    updateInputBuffer();
+
+    switch(currentState) {
+        case STATE_TITLE: updateMenu(); break;
+        case STATE_CHAR_SELECT: updateCharSelect(); break;
+        case STATE_CHAR_INTRO: updateCharIntro(); break;
+        case STATE_STAGE_INTRO: updateStageIntro(); break;
+        case STATE_PLAYING: updateFight(); break;
+        case STATE_BOSS_INTRO: updateBossIntro(); break;
+        case STATE_STAGE_CLEAR: updateStageClear(); break;
+        case STATE_ENDING: updateEnding(); break;
+        case STATE_RESULTS: updateResults(); break;
+        default: break;
+    }
+}
+
+void SorGame::updateMenu() {
+    if (arduboy.justPressed(A_BUTTON)) {
+        currentState = STATE_CHAR_SELECT;
+        currentStage = 0;
+        camera.x = 0;
+        camera.y = TO_FP(48);
+        Engine::initSkeleton(player, selectedChar, camera.x + TO_FP(35), false);
+    }
+}
+
+void SorGame::updateCharSelect() {
+    if (player.charIdx != selectedChar) {
+        Engine::initSkeleton(player, selectedChar, camera.x + TO_FP(35), false);
+    }
+    player.y = TO_FP(74);
+    camera.y = TO_FP(48);
+
+    uint8_t pIdx = 1 + (tickCount / 12) % 4; 
+    Engine::updateSkeleton(player, poses[pIdx], tickCount, pIdx);
+    
+    if (arduboy.justPressed(LEFT_BUTTON) && selectedChar > 0) selectedChar--;
+    if (arduboy.justPressed(RIGHT_BUTTON) && selectedChar < 2) selectedChar++; 
+
+    if (arduboy.justPressed(A_BUTTON)) {
+        currentState = STATE_CHAR_INTRO;
+        delayTimer = 0;
+    }
+}
+
+void SorGame::updateCharIntro() {
+    if (arduboy.justPressed(A_BUTTON)) {
+        currentState = STATE_STAGE_INTRO;
+    }
+}
+
+void SorGame::updateStageIntro() {
+    if (delayTimer == 0) delayTimer = 120;
+    delayTimer--;
+    
+    if (delayTimer == 0 || arduboy.justPressed(A_BUTTON)) {
+        resetStage();
+        currentState = STATE_PLAYING;
+    }
+}
+
+void SorGame::updateBossIntro() {
+    for(int i=0; i<MAX_ENEMIES; i++) {
+        if (enemyActive[i] && enemies[i].charIdx == currentBossCharIdx) {
+            int32_t targetX = camera.x + TO_FP(40);
+            if (enemies[i].x > targetX) {
+                enemies[i].x -= TO_FP(1);
+                enemies[i].state = CS_WALK;
+            } else {
+                enemies[i].state = CS_IDLE;
                 if (arduboy.justPressed(A_BUTTON)) {
                     currentState = STATE_PLAYING;
-                    enemies[i].aiTimer = 30; // Start fighting soon
+                    enemies[i].aiTimer = 30;
                 }
             }
         }
     }
 }
 
-void SorGame::loop() {
-    if (!arduboy.nextFrame()) return;
-    arduboy.pollButtons();
-    arduboy.clear();
-    updateInputBuffer();
-    
+void SorGame::updateStageClear() {
+    if (arduboy.justPressed(A_BUTTON)) currentState = STATE_STAGE_INTRO;
+}
+
+void SorGame::updateEnding() {
+    if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
+}
+
+void SorGame::updateResults() {
+    if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
+}
+
+void SorGame::draw() {
     switch(currentState) {
         case STATE_TITLE: drawMenu(); break;
         case STATE_CHAR_SELECT: drawCharSelect(); break;
         case STATE_CHAR_INTRO: drawCharIntro(); break;
         case STATE_STAGE_INTRO: drawStageIntro(); break;
-        case STATE_PLAYING: updateFight(); drawFight(); break;
+        case STATE_PLAYING: drawFight(); break;
         case STATE_BOSS_INTRO: drawBossIntro(); break;
         case STATE_STAGE_CLEAR: drawStageClear(); break;
         case STATE_ENDING: drawEnding(); break;
         case STATE_RESULTS:
             arduboy.setCursor(30, 25);
             arduboy.print(F("GAME OVER"));
-            if (arduboy.justPressed(A_BUTTON)) currentState = STATE_TITLE;
             break;
         default: break;
     }
-    
+}
+
+void SorGame::loop() {
+    static uint32_t lastMillis = 0;
+    static uint32_t accumulator = 0;
+    const uint32_t timeStep = 1000 / 60; // 16.66ms per logic tick
+
+    uint32_t currentMillis = millis();
+    uint32_t elapsed = currentMillis - lastMillis;
+    lastMillis = currentMillis;
+
+    // Safety: don't accumulate too much if the app was suspended or severely lagged
+    if (elapsed > 100) elapsed = 100;
+    accumulator += elapsed;
+
+    // Logic updates (fixed timestep)
+    while (accumulator >= timeStep) {
+        arduboy.pollButtons();
+        update();
+        accumulator -= timeStep;
+    }
+
+    // Render as fast as possible (or capped by Arduboy/SDL)
+    if (!arduboy.nextFrame()) return;
+
+    arduboy.clear();
+    draw();
     arduboy.display();
 }

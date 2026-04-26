@@ -83,9 +83,9 @@ const char end_2[] PROGMEM = "GOLIATH'S MIGHT HAS\nRESTORED PEACE. NO\nGANG DARE
 
 const char* const endings[] PROGMEM = { end_0, end_1, end_2 };
 
-const char boss_0[] PROGMEM = "YOU THINK YOU CAN\nCLEAN THESE STREETS?\nI AM THE ECHO\nOF YOUR FAILURE!";
-const char boss_1[] PROGMEM = "THE PARK IS MINE.\nYOUR VIGILANTE ACT\nENDS HERE!";
-const char boss_2[] PROGMEM = "THIS FACTORY GRINDS\nHEROES INTO DUST.\nPREPARE TO BE\nRECYCLED!";
+const char boss_0[] PROGMEM = "CAN YOU HEAR THAT?\nIT IS THE SONG OF\nYOUR DEFEAT. THE\nCITY IS MY STAGE!";
+const char boss_1[] PROGMEM = "YOU'RE DRIFTING INTO\nDANGEROUS WATERS.\nTHE PARK BELONGS\nTO THE SWIFT!";
+const char boss_2[] PROGMEM = "I WILL CRUSH YOU\nLIKE RAW ORE. THIS\nFACTORY IS YOUR\nGRAVEYARD!";
 const char boss_3[] PROGMEM = "THE DESERT BURIES\nALL SECRETS. AND\nSOON, IT WILL\nBURY YOU!";
 const char boss_4[] PROGMEM = "I AM THE CITY'S\nTRUE MASTER.\nKNEEL BEFORE\nTHE ECHO!";
 
@@ -98,6 +98,15 @@ const char clear_3[] PROGMEM = "THE DESERT HEAT IS\nNOTHING COMPARED TO\nTHE HEA
 const char clear_4[] PROGMEM = "THE FINAL BOSS IS\nNEAR. FINISH THIS\nAND SAVE THE CITY\nONCE AND FOR ALL!";
 
 const char* const stage_clears[] PROGMEM = { clear_0, clear_1, clear_2, clear_3, clear_4 };
+
+const char stage_name_0[] PROGMEM = "THE CITY";
+const char stage_name_1[] PROGMEM = "THE PARK";
+const char stage_name_2[] PROGMEM = "THE FACTORY";
+const char stage_name_3[] PROGMEM = "THE WASTELAND";
+const char stage_name_4[] PROGMEM = "THE FINAL CITY";
+const char* const stage_names[] PROGMEM = { stage_name_0, stage_name_1, stage_name_2, stage_name_3, stage_name_4 };
+
+const uint8_t stage_bosses[] PROGMEM = {5, 6, 7, 8, 9};
 
 const CharacterData roster[] PROGMEM = {
     {"ZENITH",  {12, 6, 10, 10, 12, 12}, TO_FP(1.3), {0, 1, 0, 2, 0, 1}, AI_BALANCED, 60, 70},

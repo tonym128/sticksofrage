@@ -19,12 +19,22 @@ public:
     void loop();
 
 protected:
+    void update();
+    void draw();
     void drawBackground();
     void triggerHit(Skeleton &attacker, Skeleton &defender);
     void updatePlayer();
     void updateEnemies();
     void resetStage();
     void updateFight();
+    void updateMenu();
+    void updateCharSelect();
+    void updateCharIntro();
+    void updateBossIntro();
+    void updateStageIntro();
+    void updateStageClear();
+    void updateEnding();
+    void updateResults();
     void drawFight();
     void drawMenu();
     void drawCharSelect();
@@ -64,9 +74,11 @@ protected:
     uint8_t goPromptTimer = 0;
     bool bossSpawned = false;
     bool bossDefeated = false;
+    uint8_t currentBossCharIdx = 9;
 
     uint8_t menuIdx = 0;
     uint16_t delayTimer = 0;
+    uint32_t tickCount = 0;
 };
 
 #endif
