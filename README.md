@@ -12,20 +12,30 @@ A technical side-scrolling beat 'em up for the **Arduboy** (monochrome handheld)
 - **Multi-Platform**: Play on original Arduboy hardware or on Desktop via SDL2.
 - **Animation Editor**: Includes a desktop-based skeletal animation editor for creating and tweaking poses.
 
+## Gallery
+
+| Main Menu | Gameplay |
+| :---: | :---: |
+| ![Front Screen](screenshots/frontscreen.png) | ![Gameplay](screenshots/gameplay.png) |
+
+| Combat | Story |
+| :---: | :---: |
+| ![Fighter](screenshots/fighter.png) | ![Story](screenshots/story.png) |
+
 ## Roster
 
-| Character | Style | Description |
-| :--- | :--- | :--- |
-| **ZENITH** | Balanced | A disgraced cop taking the law into his own hands. |
-| **CINDER** | Rushdown | Seeking revenge after his home was burned by gangs. |
-| **GOLIATH** | Tank | A giant protector crushing any gang in his path. |
-| **VOLT** | Zoner | Long-range specialist with high utility. |
-| **KAGE** | Rushdown | Fast and lethal shadow warrior. |
-| **SIREN** | Balanced | Versatile fighter with strong defensive options. |
-| **DRIFT** | Balanced | Agile combatant focused on momentum. |
-| **TUSK** | Tank | Heavy hitter with massive endurance. |
-| **JADE** | Rushdown | Precise and rapid-fire martial artist. |
-| **ECHO** | Zoner | Master of space and timing. |
+| Character | Role | Style | Description |
+| :--- | :--- | :--- | :--- |
+| **ZENITH** | Playable | Balanced | A disgraced cop taking the law into his own hands. |
+| **CINDER** | Playable | Rushdown | Seeking revenge after his home was burned by gangs. |
+| **GOLIATH** | Playable | Tank | A giant protector crushing any gang in his path. |
+| **VOLT** | Enemy | Zoner | Long-range specialist with high utility. |
+| **KAGE** | Enemy | Rushdown | Fast and lethal shadow warrior. |
+| **SIREN** | Enemy/Boss | Balanced | Versatile fighter with strong defensive options. |
+| **DRIFT** | Enemy/Boss | Balanced | Agile combatant focused on momentum. |
+| **TUSK** | Enemy/Boss | Tank | Heavy hitter with massive endurance. |
+| **JADE** | Enemy/Boss | Rushdown | Precise and rapid-fire martial artist. |
+| **ECHO** | Final Boss | Zoner | Master of space and timing. |
 
 ## Stages
 
